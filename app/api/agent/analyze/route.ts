@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultGuardrails, marketSnapshots } from "@/lib/hyperliquid";
 
+export const dynamic = "force-static";
+
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as {
     prompt?: string;

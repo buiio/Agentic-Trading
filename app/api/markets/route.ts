@@ -8,6 +8,8 @@ import {
   type MarketSnapshot,
 } from "@/lib/hyperliquid";
 
+export const dynamic = "force-static";
+
 type HyperliquidAssetContext = {
   markPx?: string;
   midPx?: string;

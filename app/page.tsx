@@ -121,6 +121,89 @@ function MarketRow({
   );
 }
 
+function analyzeLocally({
+  market,
+  notionalUsd,
+  leverage,
+  stopLossPct,
+  takeProfitPct,
+  maxLossUsd,
+  strategyMode,
+}: {
+  market: MarketSnapshot;
+  notionalUsd: number;
+  leverage: number;
+  stopLossPct: number;
+  takeProfitPct: number;
+  maxLossUsd: number;
+  strategyMode: StrategyMode;
+}): AgentResponse {
+  const violations = [
+    notionalUsd > defaultGuardrails.maxNotionalUsd
+      ? `Notional exceeds ${defaultGuardrails.maxNotionalUsd} USD limit`
+      : null,
+    leverage > defaultGuardrails.maxLeverage
+      ? `Leverage exceeds ${defaultGuardrails.maxLeverage}x limit`
+      : null,
+    maxLossUsd > defaultGuardrails.maxDailyLossUsd
+      ? `Max loss exceeds ${defaultGuardrails.maxDailyLossUsd} USD daily loss cap`
+      : null,
+    defaultGuardrails.allowedMarkets.includes(market.coin)
+      ? null
+      : `${market.coin} is outside the allowed market list`,
+  ].filter((violation): violation is string => Boolean(violation));
+  const direction =
+    market.signal === "Momentum"
+      ? "long continuation"
+      : market.signal === "Mean reversion"
+        ? "small counter-trend long"
+        : "no trade";
+  const entryPrice = market.markPx * 0.998;
+  const stopLoss = entryPrice * (1 - stopLossPct / 100);
+  const takeProfit = entryPrice * (1 + takeProfitPct / 100);
+  const estimatedLossUsd = notionalUsd * (stopLossPct / 100) * leverage;
+  const canStage = violations.length === 0 && direction !== "no trade";
+
+  return {
+    summary: canStage
+      ? `The agent would stage a ${direction} idea on ${market.coin}, then wait for explicit user approval.`
+      : "The agent blocked this idea because it violates account guardrails.",
+    confidence: market.signal === "Wait" || market.signal === "Risk-off" ? 42 : 68,
+    action: canStage ? "notify-user-for-approval" : "do-not-submit",
+    rationale: [
+      `${market.coin} has a ${market.change24h.toFixed(2)}% 24h move with ${market.liquidity.toLowerCase()} liquidity.`,
+      `Funding is ${market.funding8h.toFixed(3)}% over 8h, so the strategy sizes conservatively.`,
+      `${strategyMode} risk tuning uses a ${stopLossPct.toFixed(2)}% stop, ${takeProfitPct.toFixed(2)}% target, and ${maxLossUsd.toFixed(2)} USD max-loss cap.`,
+      "Static fallback mode is active; deterministic policy code still blocks unsafe staged orders.",
+    ],
+    riskChecks: {
+      passed: violations.length === 0,
+      violations,
+      humanApprovalRequired: defaultGuardrails.requireHumanApproval,
+    },
+    stagedOrder: canStage
+      ? {
+          id: `ticket-${Date.now()}`,
+          market: `${market.coin}-PERP`,
+          side: "buy",
+          notionalUsd,
+          leverage,
+          orderType: "limit",
+          entryPrice,
+          stopLoss,
+          takeProfit,
+          maxLossUsd: Math.min(maxLossUsd, estimatedLossUsd),
+          stopLossPct,
+          takeProfitPct,
+          strategyMode,
+          reason: `${market.coin} shows a ${market.signal.toLowerCase()} setup with ${strategyMode.toLowerCase()} risk tuning and predefined invalidation.`,
+          mode: defaultGuardrails.mode,
+          requiresApproval: defaultGuardrails.requireHumanApproval,
+        }
+      : null,
+  };
+}
+
 export default function Home() {
   const [markets, setMarkets] = useState<MarketSnapshot[]>(marketSnapshots);
   const [marketSource, setMarketSource] = useState<MarketsResponse["source"]>("local-fallback");
@@ -177,25 +260,45 @@ export default function Home() {
     event.preventDefault();
     setLoading(true);
     setApprovalStatus("idle");
-    const response = await fetch("/api/agent/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        market: selectedMarket.coin,
-        markPx: selectedMarket.markPx,
-        change24h: selectedMarket.change24h,
-        funding8h: selectedMarket.funding8h,
-        openInterestUsd: selectedMarket.openInterestUsd,
+    let analysis: AgentResponse;
+
+    try {
+      const response = await fetch("/api/agent/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          market: selectedMarket.coin,
+          markPx: selectedMarket.markPx,
+          change24h: selectedMarket.change24h,
+          funding8h: selectedMarket.funding8h,
+          openInterestUsd: selectedMarket.openInterestUsd,
+          notionalUsd,
+          leverage,
+          stopLossPct,
+          takeProfitPct,
+          maxLossUsd,
+          strategyMode,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Agent API unavailable");
+      }
+
+      analysis = (await response.json()) as AgentResponse;
+    } catch {
+      analysis = analyzeLocally({
+        market: selectedMarket,
         notionalUsd,
         leverage,
         stopLossPct,
         takeProfitPct,
         maxLossUsd,
         strategyMode,
-      }),
-    });
-    const analysis = (await response.json()) as AgentResponse;
+      });
+    }
+
     setAgentResponse(analysis);
     setApprovalStatus(analysis.stagedOrder ? "pending" : "idle");
     setLoading(false);
