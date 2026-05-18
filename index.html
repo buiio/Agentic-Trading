@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Asteria Trading Agent</title>
+    <style>
+      :root {
+        --ink: #edfdf7;
+        --muted: #80918c;
+        --line: rgba(138, 255, 207, 0.16);
+        --green: #56f7b2;
+        --red: #ff5f6d;
+        --blue: #52d6ff;
+        --amber: #ffbf5f;
+        --panel: rgba(9, 18, 20, 0.84);
+        --shadow: 0 18px 70px rgba(0, 0, 0, 0.34);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 18% 8%, rgba(86, 247, 178, 0.12), transparent 28%),
+          radial-gradient(circle at 82% 14%, rgba(82, 214, 255, 0.1), transparent 30%),
+          linear-gradient(135deg, #05090b 0%, #071012 48%, #030607 100%);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(86, 247, 178, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(86, 247, 178, 0.035) 1px, transparent 1px);
+        background-size: 42px 42px;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 78%);
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        min-height: 100vh;
+        position: relative;
+        z-index: 1;
+      }
+
+      .sidebar {
+        background: rgba(3, 8, 10, 0.92);
+        border-right: 1px solid var(--line);
+        padding: 24px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+      }
+
+      .brand,
+      .nav button,
+      .pill,
+      .metric,
+      .panel-heading,
+      .primary,
+      .check,
+      .ticket-title,
+      .actions,
+      .signal-strip span,
+      .run-list div {
+        display: flex;
+        align-items: center;
+      }
+
+      .brand {
+        gap: 10px;
+        font-size: 20px;
+        font-weight: 850;
+      }
+
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--green), var(--blue));
+        color: #03100d;
+        box-shadow: 0 0 26px rgba(86, 247, 178, 0.34);
+      }
+
+      .nav {
+        display: grid;
+        gap: 6px;
+      }
+
+      .nav button {
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        padding: 12px;
+        gap: 10px;
+        text-align: left;
+      }
+
+      .nav button.active,
+      .nav button:hover {
+        color: var(--ink);
+        background: rgba(86, 247, 178, 0.08);
+        border-color: rgba(86, 247, 178, 0.18);
+      }
+
+      .network {
+        margin-top: auto;
+        border: 1px solid rgba(86, 247, 178, 0.22);
+        border-radius: 8px;
+        color: var(--green);
+        background: rgba(86, 247, 178, 0.06);
+        padding: 12px;
+        font-size: 13px;
+      }
+
+      .workspace {
+        padding: 26px;
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .top-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .eyebrow {
+        margin: 0 0 7px;
+        color: var(--green);
+        text-transform: uppercase;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 820px;
+        font-size: clamp(32px, 4.4vw, 60px);
+        line-height: 0.94;
+      }
+
+      h2 {
+        font-size: 19px;
+      }
+
+      .pill {
+        border: 1px solid var(--line);
+        background: rgba(9, 18, 20, 0.72);
+        border-radius: 999px;
+        padding: 10px 13px;
+        gap: 8px;
+        white-space: nowrap;
+        box-shadow: var(--shadow);
+      }
+
+      .pill.live {
+        color: var(--green);
+      }
+
+      .signal-strip,
+      .metrics,
+      .content {
+        display: grid;
+        gap: 12px;
+      }
+
+      .signal-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .signal-strip span {
+        min-height: 42px;
+        border: 1px solid var(--line);
+        background: rgba(9, 18, 20, 0.62);
+        border-radius: 8px;
+        padding: 0 12px;
+        color: #b8c8c2;
+        font-size: 13px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .metric,
+      .panel {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .metric {
+        min-height: 92px;
+        padding: 16px;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .metric strong {
+        width: 100%;
+        font-size: 24px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .content {
+        grid-template-columns: minmax(420px, 1.1fr) minmax(360px, 0.9fr);
+        gap: 14px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .agent-panel {
+        grid-row: span 3;
+      }
+
+      .panel-heading {
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+
+      .market-table {
+        display: grid;
+        gap: 7px;
+      }
+
+      .market-head,
+      .market-row {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr 0.75fr 0.85fr 0.85fr;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .market-head {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 0 12px;
+        text-transform: uppercase;
+      }
+
+      .market-row {
+        width: 100%;
+        border: 1px solid rgba(138, 255, 207, 0.08);
+        border-radius: 8px;
+        background: rgba(4, 10, 12, 0.72);
+        padding: 12px;
+        color: var(--ink);
+        text-align: left;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .market-row.selected {
+        border-color: rgba(86, 247, 178, 0.58);
+        box-shadow: inset 3px 0 0 var(--green);
+      }
+
+      small {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+      }
+
+      .positive {
+        color: var(--green);
+      }
+
+      .negative {
+        color: var(--red);
+      }
+
+      .signal {
+        border-radius: 999px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 850;
+        color: #03100d;
+        background: var(--green);
+        white-space: nowrap;
+      }
+
+      form,
+      .ticket,
+      .risk-controls,
+      .rules,
+      .run-list,
+      .queue {
+        display: grid;
+        gap: 12px;
+      }
+
+      textarea,
+      input {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: rgba(3, 8, 10, 0.86);
+        color: var(--ink);
+        border-radius: 8px;
+        outline: none;
+      }
+
+      textarea {
+        min-height: 132px;
+        resize: vertical;
+        padding: 13px;
+      }
+
+      input {
+        height: 44px;
+        padding: 0 12px;
+      }
+
+      label span {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .primary {
+        min-height: 46px;
+        justify-content: center;
+        gap: 10px;
+        border: 1px solid rgba(86, 247, 178, 0.35);
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--green), var(--blue));
+        color: #03100d;
+        font-weight: 850;
+      }
+
+      .mode-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .mode-tabs button,
+      .icon-button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(4, 10, 12, 0.72);
+        color: var(--muted);
+        font-weight: 850;
+      }
+
+      .mode-tabs button {
+        min-height: 38px;
+      }
+
+      .mode-tabs button.selected {
+        border-color: rgba(86, 247, 178, 0.44);
+        background: rgba(86, 247, 178, 0.1);
+        color: var(--green);
+      }
+
+      .icon-button {
+        width: 38px;
+        height: 38px;
+      }
+
+      .risk-preview,
+      .order-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .order-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .risk-preview span,
+      .order-grid span,
+      .queue-item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(4, 10, 12, 0.72);
+        padding: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .risk-preview strong,
+      .order-grid strong {
+        display: block;
+        color: var(--ink);
+        font-size: 14px;
+        margin-top: 5px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .agent-result {
+        margin-top: 16px;
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+      }
+
+      .check {
+        gap: 10px;
+        border-radius: 8px;
+        padding: 12px;
+        font-weight: 850;
+      }
+
+      .check.passed {
+        border: 1px solid rgba(86, 247, 178, 0.26);
+        background: rgba(86, 247, 178, 0.08);
+        color: var(--green);
+      }
+
+      .ticket {
+        margin-top: 14px;
+        border: 1px solid rgba(138, 255, 207, 0.18);
+        border-radius: 8px;
+        background: rgba(4, 10, 12, 0.82);
+        padding: 14px;
+      }
+
+      .ticket-title {
+        justify-content: space-between;
+      }
+
+      .actions {
+        gap: 10px;
+      }
+
+      .actions button {
+        min-height: 42px;
+        border-radius: 8px;
+        padding: 0 12px;
+        font-weight: 850;
+      }
+
+      .approve {
+        border: 1px solid rgba(86, 247, 178, 0.38);
+        background: var(--green);
+        color: #03100d;
+      }
+
+      .reject {
+        border: 1px solid rgba(255, 95, 109, 0.34);
+        background: rgba(255, 95, 109, 0.08);
+        color: var(--red);
+      }
+
+      .rules div,
+      .run-list div,
+      .queue-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 10px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      @media (max-width: 1040px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          flex-direction: row;
+          align-items: center;
+          overflow-x: auto;
+        }
+
+        .nav {
+          display: flex;
+        }
+
+        .content,
+        .metrics,
+        .signal-strip {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .workspace {
+          padding: 18px;
+        }
+
+        .topbar,
+        .sidebar,
+        .top-actions {
+          flex-direction: column;
+        }
+
+        .content,
+        .metrics,
+        .signal-strip,
+        .grid-2,
+        .risk-preview,
+        .order-grid,
+        .mode-tabs {
+          grid-template-columns: 1fr;
+        }
+
+        .market-head {
+          display: none;
+        }
+
+        .market-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark">⌁</div><span>Asteria</span></div>
+        <nav class="nav">
+          <button>Markets</button>
+          <button class="active">Agent</button>
+          <button>Risk</button>
+          <button>Wallet</button>
+        </nav>
+        <div class="network">HL static terminal</div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Hyperliquid agent terminal</p>
+            <h1>AI trade ops with human approval at the edge.</h1>
+          </div>
+          <div class="top-actions">
+            <div class="pill live">Paper engine armed</div>
+            <div class="pill">Wallet not connected</div>
+          </div>
+        </header>
+
+        <section class="signal-strip">
+          <span>Agent policy: approval required</span>
+          <span>Execution adapter: simulated</span>
+          <span>Market feed: static fallback</span>
+        </section>
+
+        <section class="metrics">
+          <div class="metric"><span>Paper equity</span><strong>$10,000</strong></div>
+          <div class="metric"><span>Max leverage</span><strong>3x</strong></div>
+          <div class="metric"><span>Approval mode</span><strong>Required</strong></div>
+          <div class="metric"><span>Daily loss cap</span><strong>$150</strong></div>
+        </section>
+
+        <section class="content">
+          <div class="panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">Hyperliquid perps</p><h2>Market scanner</h2></div>
+            </div>
+            <div class="market-table" id="markets"></div>
+          </div>
+
+          <div class="panel agent-panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">AI copilot</p><h2 id="brief-title">BTC agent brief</h2></div>
+              <span class="signal" id="signal-pill">Momentum</span>
+            </div>
+            <form id="agent-form">
+              <textarea id="prompt">Find a conservative intraday setup and explain why it should or should not be traded.</textarea>
+              <div class="grid-2">
+                <label><span>Notional USD</span><input id="notional" type="number" value="300" min="25" step="25" /></label>
+                <label><span>Leverage</span><input id="leverage" type="number" value="2" min="1" max="10" step="1" /></label>
+              </div>
+              <button class="primary" type="submit">Run agent</button>
+            </form>
+            <div class="agent-result" id="agent-result">Ask the agent for a setup. It will run policy checks and stage only paper orders.</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Notifications</p><h2>Approval queue</h2></div></div>
+            <div class="queue" id="queue">No pending trade alerts.</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">Risk tuning</p><h2>Trade controls</h2></div>
+              <button class="icon-button" id="reset" type="button">↺</button>
+            </div>
+            <div class="mode-tabs">
+              <button class="selected" data-mode="Conservative">Conservative</button>
+              <button data-mode="Balanced">Balanced</button>
+              <button data-mode="Aggressive">Aggressive</button>
+            </div>
+            <div class="risk-controls grid-2">
+              <label><span>Stop loss %</span><input id="stop" type="number" value="1.2" min="0.2" max="15" step="0.1" /></label>
+              <label><span>Take profit %</span><input id="target" type="number" value="2.2" min="0.4" max="30" step="0.1" /></label>
+              <label><span>Max loss USD</span><input id="max-loss" type="number" value="40" min="1" max="150" step="5" /></label>
+              <label><span>Leverage cap</span><input id="lev-cap" type="number" value="2" min="1" max="10" step="1" /></label>
+            </div>
+            <div class="risk-preview">
+              <span>Estimated max loss<strong id="loss-preview">$7.20</strong></span>
+              <span>Reward/risk<strong id="rr-preview">1.83x</strong></span>
+            </div>
+            <div class="rules">
+              <div><span>Mode</span><strong>Paper trading</strong></div>
+              <div><span>Max order</span><strong>$750</strong></div>
+              <div><span>Allowed markets</span><strong>BTC, ETH, SOL, HYPE</strong></div>
+              <div><span>Live orders</span><strong>Human approval</strong></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Autonomy log</p><h2>Agent runs</h2></div></div>
+            <div class="run-list" id="runs">
+              <div><span><strong>Funding drift scan</strong><small>No crowded longs above policy threshold</small></span><em>Passed</em></div>
+              <div><span><strong>Liquidation map</strong><small>BTC liquidity cluster at 102.8K</small></span><em>Watching</em></div>
+              <div><span><strong>Position audit</strong><small>Daily loss budget has 81% remaining</small></span><em>Clean</em></div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const markets = [
+        { coin: "BTC", markPx: 77616, change24h: -1.05, funding8h: 0.001, openInterestUsd: 2083968336, liquidity: "Deep", signal: "Mean reversion" },
+        { coin: "ETH", markPx: 2151.5, change24h: -2.02, funding8h: 0.001, openInterestUsd: 1181374745, liquidity: "Deep", signal: "Mean reversion" },
+        { coin: "SOL", markPx: 85.58, change24h: -1.52, funding8h: 0.001, openInterestUsd: 347629913, liquidity: "Moderate", signal: "Mean reversion" },
+        { coin: "HYPE", markPx: 45.85, change24h: 6.75, funding8h: 0.001, openInterestUsd: 1027149800, liquidity: "Deep", signal: "Momentum" },
+        { coin: "FET", markPx: 0.19, change24h: -2.41, funding8h: -0.003, openInterestUsd: 3026424, liquidity: "Thin", signal: "Mean reversion" },
+      ];
+      const defaults = {
+        Conservative: { leverage: 2, stop: 1.2, target: 2.2, maxLoss: 40 },
+        Balanced: { leverage: 3, stop: 1.8, target: 3.2, maxLoss: 75 },
+        Aggressive: { leverage: 5, stop: 2.6, target: 5.0, maxLoss: 120 },
+      };
+      let selected = markets[0];
+      let mode = "Conservative";
+
+      const usd = (value) =>
+        new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: value > 1000 ? 0 : 2 }).format(value);
+      const compact = (value) =>
+        new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(value);
+
+      function renderMarkets() {
+        document.getElementById("markets").innerHTML =
+          `<div class="market-head"><span>Market</span><span>Mark</span><span>24h</span><span>Funding</span><span>OI</span></div>` +
+          markets
+            .map(
+              (market) => `<button class="market-row ${selected.coin === market.coin ? "selected" : ""}" data-coin="${market.coin}">
+                <span><strong>${market.coin}</strong><small>${market.signal}</small></span>
+                <span>${usd(market.markPx)}</span>
+                <span class="${market.change24h >= 0 ? "positive" : "negative"}">${market.change24h >= 0 ? "+" : ""}${market.change24h.toFixed(2)}%</span>
+                <span>${market.funding8h.toFixed(3)}%</span>
+                <span>${compact(market.openInterestUsd)}</span>
+              </button>`,
+            )
+            .join("");
+        document.querySelectorAll(".market-row").forEach((button) => {
+          button.addEventListener("click", () => {
+            selected = markets.find((market) => market.coin === button.dataset.coin);
+            document.getElementById("brief-title").textContent = `${selected.coin} agent brief`;
+            document.getElementById("signal-pill").textContent = selected.signal;
+            renderMarkets();
+          });
+        });
+      }
+
+      function syncRisk() {
+        const notional = Number(document.getElementById("notional").value);
+        const leverage = Number(document.getElementById("leverage").value);
+        const stop = Number(document.getElementById("stop").value);
+        const target = Number(document.getElementById("target").value);
+        document.getElementById("lev-cap").value = leverage;
+        document.getElementById("loss-preview").textContent = usd(notional * (stop / 100) * leverage);
+        document.getElementById("rr-preview").textContent = `${(target / stop).toFixed(2)}x`;
+      }
+
+      function applyMode(nextMode) {
+        mode = nextMode;
+        const setting = defaults[mode];
+        document.getElementById("leverage").value = setting.leverage;
+        document.getElementById("lev-cap").value = setting.leverage;
+        document.getElementById("stop").value = setting.stop;
+        document.getElementById("target").value = setting.target;
+        document.getElementById("max-loss").value = setting.maxLoss;
+        document.querySelectorAll(".mode-tabs button").forEach((button) => button.classList.toggle("selected", button.dataset.mode === mode));
+        syncRisk();
+      }
+
+      function runAgent(event) {
+        event.preventDefault();
+        const notional = Number(document.getElementById("notional").value);
+        const leverage = Number(document.getElementById("leverage").value);
+        const stopPct = Number(document.getElementById("stop").value);
+        const targetPct = Number(document.getElementById("target").value);
+        const maxLoss = Number(document.getElementById("max-loss").value);
+        const violations = [
+          notional > 750 ? "Notional exceeds $750 max order" : null,
+          leverage > 3 ? "Leverage exceeds 3x policy cap" : null,
+          maxLoss > 150 ? "Max loss exceeds $150 daily cap" : null,
+          ["BTC", "ETH", "SOL", "HYPE"].includes(selected.coin) ? null : `${selected.coin} is outside the allowed market list`,
+        ].filter(Boolean);
+        const canStage = violations.length === 0 && selected.signal !== "Wait" && selected.signal !== "Risk-off";
+        const entry = selected.markPx * 0.998;
+        const stop = entry * (1 - stopPct / 100);
+        const target = entry * (1 + targetPct / 100);
+        const estimatedLoss = Math.min(maxLoss, notional * (stopPct / 100) * leverage);
+
+        document.getElementById("agent-result").innerHTML = `
+          <p><strong>${canStage ? `The agent would stage a setup on ${selected.coin}, then wait for approval.` : "The agent blocked this setup."}</strong></p>
+          <div class="check ${canStage ? "passed" : ""}">${canStage ? "Policy passed. User approval required." : violations.join(", ")}</div>
+          ${
+            canStage
+              ? `<div class="ticket">
+                  <div class="ticket-title"><strong>AI trade alert</strong><small>Waiting for your decision</small></div>
+                  <div class="order-grid">
+                    <span>Market<strong>${selected.coin}-PERP</strong></span>
+                    <span>Side<strong>BUY</strong></span>
+                    <span>Entry<strong>${usd(entry)}</strong></span>
+                    <span>Size<strong>${usd(notional)}</strong></span>
+                    <span>Leverage<strong>${leverage}x</strong></span>
+                    <span>Max loss<strong>${usd(estimatedLoss)}</strong></span>
+                    <span>Stop<strong>${usd(stop)}</strong><small>${stopPct.toFixed(2)}%</small></span>
+                    <span>Target<strong>${usd(target)}</strong><small>${targetPct.toFixed(2)}%</small></span>
+                  </div>
+                  <p>${selected.coin} shows a ${selected.signal.toLowerCase()} setup with ${mode.toLowerCase()} risk tuning.</p>
+                  <div class="actions">
+                    <button class="approve" type="button" id="approve">Approve paper trade</button>
+                    <button class="reject" type="button" id="reject">Reject</button>
+                  </div>
+                </div>`
+              : ""
+          }`;
+        if (canStage) {
+          document.getElementById("queue").innerHTML = `<div class="queue-item"><span><strong>${selected.coin}-PERP</strong><small>Needs user approval</small></span><em>paper</em></div>`;
+          document.getElementById("approve").addEventListener("click", () => {
+            document.getElementById("queue").innerHTML = `<div class="queue-item"><span><strong>${selected.coin}-PERP</strong><small>Approved and queued</small></span><em>paper</em></div>`;
+            document.getElementById("runs").insertAdjacentHTML("afterbegin", `<div><span><strong>Approved ${selected.coin}-PERP BUY paper order</strong><small>Current session</small></span><em>Now</em></div>`);
+          });
+          document.getElementById("reject").addEventListener("click", () => {
+            document.getElementById("queue").innerHTML = `<div class="queue-item"><span><strong>${selected.coin}-PERP</strong><small>Rejected by user</small></span><em>paper</em></div>`;
+          });
+        }
+      }
+
+      document.getElementById("agent-form").addEventListener("submit", runAgent);
+      document.querySelectorAll("input").forEach((input) => input.addEventListener("input", syncRisk));
+      document.querySelectorAll(".mode-tabs button").forEach((button) => button.addEventListener("click", () => applyMode(button.dataset.mode)));
+      document.getElementById("reset").addEventListener("click", () => {
+        document.getElementById("notional").value = 300;
+        applyMode("Conservative");
+      });
+      renderMarkets();
+      syncRisk();
+    </script>
+  </body>
+</html>
