@@ -26,9 +26,13 @@ import {
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   defaultGuardrails,
+  deriveLiquidity,
+  deriveMarketSignal,
   formatCompactUsd,
   formatUsd,
+  HYPERLIQUID_ENDPOINTS,
   marketSnapshots,
+  trackedMarkets,
   type MarketSnapshot,
 } from "@/lib/hyperliquid";
 
@@ -70,6 +74,21 @@ type MarketsResponse = {
   source: "hyperliquid-live" | "local-fallback";
   updatedAt: string;
 };
+
+type HyperliquidAssetContext = {
+  markPx?: string;
+  midPx?: string;
+  prevDayPx?: string;
+  funding?: string;
+  openInterest?: string;
+};
+
+type HyperliquidMetaResponse = [
+  {
+    universe: { name: string }[];
+  },
+  HyperliquidAssetContext[],
+];
 
 const navItems = [
   { label: "Markets", icon: LineChart },
@@ -119,6 +138,51 @@ function MarketRow({
       <span>{formatCompactUsd(market.openInterestUsd)}</span>
     </button>
   );
+}
+
+async function fetchLiveHyperliquidMarkets(): Promise<MarketSnapshot[]> {
+  const [midsResponse, contextsResponse] = await Promise.all([
+    fetch(HYPERLIQUID_ENDPOINTS.mainnet.info, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "allMids" }),
+      cache: "no-store",
+    }),
+    fetch(HYPERLIQUID_ENDPOINTS.mainnet.info, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "metaAndAssetCtxs" }),
+      cache: "no-store",
+    }),
+  ]);
+
+  if (!midsResponse.ok || !contextsResponse.ok) {
+    throw new Error("Hyperliquid browser market request failed");
+  }
+
+  const mids = (await midsResponse.json()) as Record<string, string>;
+  const [meta, contexts] = (await contextsResponse.json()) as HyperliquidMetaResponse;
+
+  return trackedMarkets.map((coin) => {
+    const index = meta.universe.findIndex((asset) => asset.name === coin);
+    const context = index >= 0 ? contexts[index] : undefined;
+    const markPx = Number(context?.markPx ?? context?.midPx ?? mids[coin]);
+    const prevDayPx = Number(context?.prevDayPx ?? markPx);
+    const funding8h = Number(context?.funding ?? 0) * 100;
+    const openInterestUsd = Number(context?.openInterest ?? 0) * markPx;
+    const change24h = prevDayPx > 0 ? ((markPx - prevDayPx) / prevDayPx) * 100 : 0;
+
+    return {
+      coin,
+      markPx,
+      change24h,
+      funding8h,
+      openInterestUsd,
+      liquidity: deriveLiquidity(openInterestUsd),
+      signal: deriveMarketSignal(change24h, funding8h),
+      source: "live",
+    };
+  });
 }
 
 function analyzeLocally({
@@ -232,13 +296,23 @@ export default function Home() {
     let active = true;
 
     async function loadMarkets() {
-      const response = await fetch("/api/markets", { cache: "no-store" });
-      const data = (await response.json()) as MarketsResponse;
+      try {
+        const liveMarkets = await fetchLiveHyperliquidMarkets();
 
-      if (active) {
-        setMarkets(data.markets);
-        setMarketSource(data.source);
-        setMarketUpdatedAt(data.updatedAt);
+        if (active) {
+          setMarkets(liveMarkets);
+          setMarketSource("hyperliquid-live");
+          setMarketUpdatedAt(new Date().toISOString());
+        }
+      } catch {
+        const response = await fetch("/api/markets", { cache: "no-store" });
+        const data = (await response.json()) as MarketsResponse;
+
+        if (active) {
+          setMarkets(data.markets);
+          setMarketSource(data.source);
+          setMarketUpdatedAt(data.updatedAt);
+        }
       }
     }
 

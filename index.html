@@ -593,7 +593,7 @@
         <section class="signal-strip">
           <span>Agent policy: approval required</span>
           <span>Execution adapter: simulated</span>
-          <span>Market feed: static fallback</span>
+          <span id="market-feed">Market feed: loading Hyperliquid</span>
         </section>
 
         <section class="metrics">
@@ -673,7 +673,7 @@
     </main>
 
     <script>
-      const markets = [
+      let markets = [
         { coin: "BTC", markPx: 77616, change24h: -1.05, funding8h: 0.001, openInterestUsd: 2083968336, liquidity: "Deep", signal: "Mean reversion" },
         { coin: "ETH", markPx: 2151.5, change24h: -2.02, funding8h: 0.001, openInterestUsd: 1181374745, liquidity: "Deep", signal: "Mean reversion" },
         { coin: "SOL", markPx: 85.58, change24h: -1.52, funding8h: 0.001, openInterestUsd: 347629913, liquidity: "Moderate", signal: "Mean reversion" },
@@ -692,6 +692,72 @@
         new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: value > 1000 ? 0 : 2 }).format(value);
       const compact = (value) =>
         new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(value);
+
+      function signal(change24h, funding8h) {
+        if (funding8h > 0.025) return "Risk-off";
+        if (change24h > 1) return "Momentum";
+        if (change24h < -3) return "Wait";
+        return "Mean reversion";
+      }
+
+      function liquidity(openInterestUsd) {
+        if (openInterestUsd > 500000000) return "Deep";
+        if (openInterestUsd > 100000000) return "Moderate";
+        return "Thin";
+      }
+
+      async function loadLiveMarkets() {
+        const [midsResponse, contextsResponse] = await Promise.all([
+          fetch("https://api.hyperliquid.xyz/info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "allMids" }),
+          }),
+          fetch("https://api.hyperliquid.xyz/info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "metaAndAssetCtxs" }),
+          }),
+        ]);
+
+        if (!midsResponse.ok || !contextsResponse.ok) {
+          throw new Error("Hyperliquid market request failed");
+        }
+
+        const mids = await midsResponse.json();
+        const [meta, contexts] = await contextsResponse.json();
+        const tracked = ["BTC", "ETH", "SOL", "HYPE", "FET"];
+
+        markets = tracked.map((coin) => {
+          const index = meta.universe.findIndex((asset) => asset.name === coin);
+          const context = index >= 0 ? contexts[index] : {};
+          const markPx = Number(context.markPx || context.midPx || mids[coin]);
+          const prevDayPx = Number(context.prevDayPx || markPx);
+          const funding8h = Number(context.funding || 0) * 100;
+          const openInterestUsd = Number(context.openInterest || 0) * markPx;
+          const change24h = prevDayPx > 0 ? ((markPx - prevDayPx) / prevDayPx) * 100 : 0;
+
+          return {
+            coin,
+            markPx,
+            change24h,
+            funding8h,
+            openInterestUsd,
+            liquidity: liquidity(openInterestUsd),
+            signal: signal(change24h, funding8h),
+          };
+        });
+
+        selected = markets.find((market) => market.coin === selected.coin) || markets[0];
+        document.getElementById("brief-title").textContent = `${selected.coin} agent brief`;
+        document.getElementById("signal-pill").textContent = selected.signal;
+        document.getElementById("market-feed").textContent = `Market feed: Live Hyperliquid ${new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })}`;
+        renderMarkets();
+      }
 
       function renderMarkets() {
         document.getElementById("markets").innerHTML =
@@ -804,6 +870,14 @@
       });
       renderMarkets();
       syncRisk();
+      loadLiveMarkets().catch(() => {
+        document.getElementById("market-feed").textContent = "Market feed: static fallback";
+      });
+      window.setInterval(() => {
+        loadLiveMarkets().catch(() => {
+          document.getElementById("market-feed").textContent = "Market feed: static fallback";
+        });
+      }, 30000);
     </script>
   </body>
 </html>
