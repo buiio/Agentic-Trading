@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Asteria Trading Agent",
-  description: "Retail AI trading cockpit for Hyperliquid",
+  title: "Arlo Behavioral Receipt",
+  description: "A Hyperliquid-native behavioral receipt for post-trade coaching",
 };
 
 export default function RootLayout({
