@@ -2,16 +2,15 @@
 
 import {
   AlertTriangle,
-  ArrowDownRight,
   BarChart3,
+  Bell,
   ChevronDown,
   ChevronUp,
   Clock3,
   ExternalLink,
-  Flame,
   Radio,
+  RotateCcw,
   ShieldCheck,
-  TimerReset,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -22,204 +21,205 @@ const proofTrades = [
   { date: "May 19", market: "HYPE-PERP", hold: "19m", result: "-8.0%" },
 ];
 
-const closedTrade = {
-  market: "SOL-PERP",
-  side: "Short",
-  pnl: "-4.2%",
-  entry: "$174.82",
-  exit: "$182.16",
-  size: "$8,400",
-};
+const orderBook = [
+  ["182.41", "4.21K", "sell"],
+  ["182.38", "9.84K", "sell"],
+  ["182.34", "2.13K", "sell"],
+  ["182.29", "7.65K", "sell"],
+  ["182.16", "MARK", "mark"],
+  ["182.12", "5.40K", "buy"],
+  ["182.08", "8.17K", "buy"],
+  ["182.02", "3.92K", "buy"],
+  ["181.96", "10.2K", "buy"],
+];
 
 export default function Home() {
   const [expanded, setExpanded] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   return (
-    <main className="arlo-shell">
-      <section className="platform-frame">
-        <aside className="platform-sidebar">
-          <div className="arlo-logo">
-            <span>Arlo</span>
-            <small>behavioral layer</small>
+    <main className="hyper-shell">
+      <section className="hyper-app" aria-label="Hyperliquid-style trading app background">
+        <header className="hyper-topbar">
+          <div className="hyper-brand">
+            <span>Hyperliquid</span>
+            <em>Perps</em>
           </div>
           <nav>
-            <button className="active">Receipt</button>
-            <button>Wallet model</button>
+            <button className="active">Trade</button>
+            <button>Vaults</button>
+            <button>Portfolio</button>
             <button>History</button>
-            <button>Silence rules</button>
           </nav>
-          <div className="wallet-readout">
-            <Radio size={16} />
-            <span>0x7a...91F connected</span>
+          <div className="wallet-pill">
+            <Radio size={15} />
+            <span>0x7a...91F</span>
           </div>
-        </aside>
+        </header>
 
-        <section className="trade-surface">
-          <header className="platform-topbar">
-            <div>
-              <p className="eyebrow">Hyperliquid crypto-native release</p>
-              <h1>Behavioral Receipt</h1>
-            </div>
-            <div className="state-toggle" aria-label="Receipt state">
-              <button className={!expanded ? "selected" : ""} onClick={() => setExpanded(false)}>
-                State A
+        <section className="trading-layout">
+          <aside className="markets-rail">
+            {["BTC", "ETH", "SOL", "HYPE", "FET", "PURR"].map((coin) => (
+              <button className={coin === "SOL" ? "selected" : ""} key={coin}>
+                <span>{coin}-PERP</span>
+                <strong className={coin === "SOL" ? "negative" : "positive"}>
+                  {coin === "SOL" ? "-4.2%" : "+1.8%"}
+                </strong>
               </button>
-              <button className={expanded ? "selected" : ""} onClick={() => setExpanded(true)}>
-                State B
-              </button>
-            </div>
-          </header>
+            ))}
+          </aside>
 
-          <section className="market-context" aria-label="Simulated Hyperliquid trading context">
-            <div className="chart-panel">
-              <div className="chart-header">
-                <span>SOL-PERP</span>
-                <strong>$182.16</strong>
-                <em>-4.2% closed</em>
+          <section className="chart-pane">
+            <div className="chart-heading">
+              <div>
+                <p>SOL-PERP</p>
+                <h1>$182.16</h1>
               </div>
-              <div className="chart-grid">
-                <i style={{ height: "36%" }} />
-                <i style={{ height: "52%" }} />
-                <i style={{ height: "43%" }} />
-                <i style={{ height: "65%" }} />
-                <i style={{ height: "58%" }} />
-                <i style={{ height: "82%" }} />
-                <i style={{ height: "76%" }} />
-                <i style={{ height: "91%" }} />
-                <i style={{ height: "70%" }} />
-                <i style={{ height: "86%" }} />
-                <i style={{ height: "62%" }} />
-                <i style={{ height: "73%" }} />
-              </div>
-              <div className="timeline-marker">
-                <span>Invalidation window</span>
-                <strong>+11m drift</strong>
+              <div className="trade-closed-chip">
+                <Clock3 size={15} />
+                <span>Short closed 00:00 ago</span>
               </div>
             </div>
-
-            <div className="execution-panel">
-              <div>
-                <span>Closed position</span>
-                <strong>{closedTrade.market}</strong>
-              </div>
-              <div>
-                <span>Side</span>
-                <strong>{closedTrade.side}</strong>
-              </div>
-              <div>
-                <span>Position size</span>
-                <strong>{closedTrade.size}</strong>
-              </div>
-              <div>
-                <span>Exit result</span>
-                <strong className="loss">{closedTrade.pnl}</strong>
-              </div>
+            <div className="candles">
+              {[36, 52, 43, 65, 58, 82, 76, 91, 70, 86, 62, 73, 57, 68, 49, 61].map(
+                (height, index) => (
+                  <i
+                    className={index > 5 && index < 10 ? "sell-candle" : ""}
+                    key={`${height}-${index}`}
+                    style={{ height: `${height}%` }}
+                  />
+                ),
+              )}
+            </div>
+            <div className="invalidation-line">
+              <span>Normal invalidation exit</span>
+              <strong>missed by 11m</strong>
             </div>
           </section>
 
-          <section className="receipt-zone">
-            <div className="silence-note">
-              <ShieldCheck size={16} />
-              <span>Arlo stays silent during the trade. This receipt appears only after a meaningful behavioral deviation.</span>
+          <aside className="book-pane">
+            <div className="panel-heading">
+              <span>Order book</span>
+              <em>0.01</em>
             </div>
-
-            {!dismissed ? (
-              <article className={`behavioral-receipt ${expanded ? "expanded" : ""}`}>
-                <div className="receipt-titlebar">
-                  <span>ARLO — Behavioral Alert</span>
-                  <button aria-label="Dismiss receipt" onClick={() => setDismissed(true)}>
-                    <X size={16} />
-                  </button>
+            <div className="book-list">
+              {orderBook.map(([price, size, side]) => (
+                <div className={side} key={`${price}-${size}`}>
+                  <span>{price}</span>
+                  <strong>{size}</strong>
                 </div>
+              ))}
+            </div>
+          </aside>
 
-                <div className="alert-banner">
-                  <AlertTriangle size={19} />
-                  <strong>Behavioral deviation detected</strong>
-                </div>
-
-                <div className="closed-row">
-                  <span>
-                    Closed: <strong>{closedTrade.market}</strong> <em>({closedTrade.side})</em>
-                  </span>
-                  <span>
-                    PnL: <strong>{closedTrade.pnl}</strong>
-                  </span>
-                </div>
-
-                <div className="receipt-divider" />
-
-                <section className="receipt-section">
-                  <p>The deviation</p>
-                  <h2>You held this position 11 minutes past your normal invalidation exit window.</h2>
-                </section>
-
-                <section className="impact-row">
-                  <div>
-                    <ArrowDownRight size={18} />
-                    <span>The cost</span>
-                    <strong>This habit drops your setup expectancy by -23%.</strong>
-                  </div>
-                  <div>
-                    <TimerReset size={18} />
-                    <span>Baseline exit</span>
-                    <strong>4m 12s average</strong>
-                  </div>
-                </section>
-
-                {expanded ? (
-                  <section className="historical-proof">
-                    <div className="proof-heading">
-                      <BarChart3 size={18} />
-                      <span>The historical proof</span>
-                    </div>
-                    <p>
-                      On similar momentum setups over the last 30 days, your average exit time was
-                      <strong> 4m 12s</strong>. Your execution history records this exact drift here:
-                    </p>
-                    <div className="proof-table">
-                      {proofTrades.map((trade) => (
-                        <div key={`${trade.date}-${trade.market}`}>
-                          <span>{trade.date}</span>
-                          <strong>{trade.market}</strong>
-                          <em>Hold: {trade.hold}</em>
-                          <b>{trade.result}</b>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="confidence-row">
-                      <span>Confidence Profile</span>
-                      <strong>High</strong>
-                    </div>
-                  </section>
-                ) : null}
-
-                <div className="receipt-actions">
-                  <button className="proof-button" onClick={() => setExpanded((current) => !current)}>
-                    {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    <span>{expanded ? "Collapse historical proof" : "View the 3 historical trades that prove this"}</span>
-                  </button>
-                  {expanded ? (
-                    <>
-                      <button className="secondary-button">
-                        <ExternalLink size={17} />
-                        <span>Open full history log</span>
-                      </button>
-                      <button className="dismiss-button" onClick={() => setDismissed(true)}>
-                        Dismiss
-                      </button>
-                    </>
-                  ) : null}
-                </div>
-              </article>
-            ) : (
-              <div className="dismissed-state">
-                <Flame size={18} />
-                <span>Receipt dismissed. Arlo returns to silence until the next meaningful deviation.</span>
+          <section className="positions-pane">
+            <div className="panel-heading">
+              <span>Positions</span>
+              <button onClick={() => setVisible(true)}>
+                <RotateCcw size={14} />
+                Replay close
+              </button>
+            </div>
+            <div className="positions-table">
+              <div className="table-head">
+                <span>Market</span>
+                <span>Side</span>
+                <span>Size</span>
+                <span>Entry</span>
+                <span>Exit</span>
+                <span>PnL</span>
               </div>
-            )}
+              <div className="closed-position">
+                <span>SOL-PERP</span>
+                <span>Short</span>
+                <span>$8,400</span>
+                <span>$174.82</span>
+                <span>$182.16</span>
+                <strong>-4.2%</strong>
+              </div>
+            </div>
           </section>
         </section>
+
+        {visible ? (
+          <aside className={`receipt-notification ${expanded ? "expanded" : ""}`}>
+            <div className="notification-top">
+              <div>
+                <span className="source-label">
+                  <Bell size={14} />
+                  ARLO Behavioral Alert
+                </span>
+                <strong>Behavioral deviation detected</strong>
+              </div>
+              <button aria-label="Dismiss Arlo notification" onClick={() => setVisible(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="closed-summary">
+              <span>
+                Closed: <strong>SOL-PERP</strong> <em>Short</em>
+              </span>
+              <b>-4.2%</b>
+            </div>
+
+            <div className="receipt-body">
+              <div className="warning-line">
+                <AlertTriangle size={18} />
+                <span>You held this position 11 minutes past your normal invalidation exit window.</span>
+              </div>
+              <div className="cost-box">
+                <span>The cost</span>
+                <strong>This habit drops your setup expectancy by -23%.</strong>
+              </div>
+            </div>
+
+            {expanded ? (
+              <div className="proof-area">
+                <div className="proof-title">
+                  <BarChart3 size={17} />
+                  <span>The historical proof</span>
+                </div>
+                <p>
+                  On similar momentum setups over the last 30 days, your average exit time was
+                  <strong> 4m 12s</strong>.
+                </p>
+                <div className="proof-table">
+                  {proofTrades.map((trade) => (
+                    <div key={`${trade.date}-${trade.market}`}>
+                      <span>{trade.date}</span>
+                      <strong>{trade.market}</strong>
+                      <em>Hold: {trade.hold}</em>
+                      <b>{trade.result}</b>
+                    </div>
+                  ))}
+                </div>
+                <div className="confidence-row">
+                  <span>Confidence Profile</span>
+                  <strong>High</strong>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="notification-actions">
+              <button className="primary-action" onClick={() => setExpanded((current) => !current)}>
+                {expanded ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+                <span>{expanded ? "Collapse proof" : "View the 3 historical trades"}</span>
+              </button>
+              {expanded ? (
+                <button className="secondary-action">
+                  <ExternalLink size={16} />
+                  <span>Full log</span>
+                </button>
+              ) : null}
+            </div>
+          </aside>
+        ) : (
+          <button className="silent-pill" onClick={() => setVisible(true)}>
+            <ShieldCheck size={15} />
+            Arlo silent until next deviation
+          </button>
+        )}
       </section>
     </main>
   );

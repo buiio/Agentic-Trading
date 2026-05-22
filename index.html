@@ -3,240 +3,224 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Arlo Behavioral Receipt</title>
+    <title>Arlo Hyperliquid Notification</title>
     <style>
       :root {
-        --bg: #050709;
-        --surface: rgba(8, 13, 15, 0.92);
-        --line: rgba(132, 255, 206, 0.14);
+        --panel: rgba(8, 13, 15, 0.94);
+        --line: rgba(132, 255, 206, 0.13);
         --text: #edfdf7;
         --muted: #7c8d88;
         --green: #56f7b2;
+        --cyan: #56d9ff;
         --red: #ff5f6d;
         --amber: #ffbd5a;
-        --cyan: #56d9ff;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
         background:
-          radial-gradient(circle at 18% 10%, rgba(86, 247, 178, 0.13), transparent 26%),
-          radial-gradient(circle at 82% 16%, rgba(86, 217, 255, 0.1), transparent 30%),
-          linear-gradient(135deg, #050709 0%, #071113 52%, #030506 100%);
+          radial-gradient(circle at 18% 8%, rgba(86, 247, 178, 0.1), transparent 24%),
+          radial-gradient(circle at 80% 10%, rgba(86, 217, 255, 0.08), transparent 28%),
+          linear-gradient(135deg, #050709 0%, #071113 54%, #030506 100%);
         color: var(--text);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
-      body::before {
+      button { cursor: pointer; font: inherit; }
+      .app {
+        min-height: calc(100vh - 36px);
+        margin: 18px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(3, 7, 9, 0.86);
+      }
+      .app::before {
         content: "";
-        position: fixed;
+        position: absolute;
         inset: 0;
         pointer-events: none;
         background-image:
-          linear-gradient(rgba(86, 247, 178, 0.045) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(86, 247, 178, 0.035) 1px, transparent 1px);
+          linear-gradient(rgba(86, 247, 178, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(86, 247, 178, 0.028) 1px, transparent 1px);
         background-size: 40px 40px;
       }
-      button { cursor: pointer; font: inherit; }
-      .shell {
-        min-height: 100vh;
-        padding: 24px;
-        position: relative;
-        z-index: 1;
+      .topbar, .layout, .notification { position: relative; z-index: 1; }
+      .topbar {
+        min-height: 62px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        border-bottom: 1px solid var(--line);
+        padding: 0 18px;
+        background: rgba(3, 7, 9, 0.76);
       }
-      .frame {
-        min-height: calc(100vh - 48px);
-        display: grid;
-        grid-template-columns: 238px minmax(0, 1fr);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        overflow: hidden;
-        background: rgba(3, 7, 9, 0.78);
-      }
-      aside {
-        border-right: 1px solid var(--line);
-        padding: 22px 16px;
-        background: rgba(4, 8, 10, 0.94);
-      }
-      .logo strong { display: block; font-size: 25px; }
-      .logo span, .muted { color: var(--muted); }
-      nav { display: grid; gap: 6px; margin-top: 28px; }
-      nav button, .toggle button, .receipt button {
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 19px; }
+      .brand em { color: var(--muted); font-size: 12px; font-style: normal; }
+      nav { display: flex; gap: 4px; }
+      nav button, .wallet, .market button, .positions button, .notification button {
         border: 1px solid transparent;
         border-radius: 8px;
         background: transparent;
         color: var(--muted);
       }
-      nav button { min-height: 42px; text-align: left; padding: 0 12px; }
-      nav button.active, nav button:hover, .toggle button.active {
-        color: var(--green);
-        border-color: rgba(86, 247, 178, 0.22);
-        background: rgba(86, 247, 178, 0.08);
-      }
-      .main { padding: 24px; display: grid; gap: 18px; align-content: start; }
-      header, .chart-head, .titlebar, .banner, .closed, .impact, .actions {
-        display: flex;
-        align-items: center;
-      }
-      header { justify-content: space-between; gap: 18px; }
-      .eyebrow {
-        margin: 0 0 6px;
-        color: var(--muted);
-        text-transform: uppercase;
-        font-size: 12px;
-        font-weight: 850;
-      }
-      h1, h2, p { margin: 0; }
-      h1 { font-size: clamp(34px, 4vw, 58px); line-height: 0.95; }
-      .toggle {
+      nav button { min-height: 36px; padding: 0 12px; font-weight: 800; }
+      nav button.active, nav button:hover { color: var(--green); border-color: rgba(86,247,178,.18); background: rgba(86,247,178,.07); }
+      .wallet { border-color: rgba(86,247,178,.18); padding: 9px 11px; color: var(--green); }
+      .layout {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 7px;
-        padding: 5px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-      }
-      .toggle button { min-height: 34px; padding: 0 14px; font-weight: 800; }
-      .context { display: grid; grid-template-columns: minmax(420px, 1fr) 320px; gap: 14px; }
-      .panel, .receipt, .dismissed {
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: var(--surface);
-        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
-      }
-      .chart { min-height: 260px; padding: 16px; position: relative; overflow: hidden; }
-      .chart-head { justify-content: space-between; font-variant-numeric: tabular-nums; }
-      .chart-head strong { font-size: 22px; }
-      .loss { color: var(--red); }
-      .bars { height: 168px; margin-top: 34px; display: grid; grid-template-columns: repeat(12, 1fr); align-items: end; gap: 9px; }
-      .bars i { display: block; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, rgba(255, 95, 109, 0.9), rgba(255, 95, 109, 0.2)); }
-      .marker { position: absolute; right: 18%; top: 68px; bottom: 26px; width: 1px; background: var(--amber); }
-      .marker span, .marker strong { position: absolute; left: 12px; white-space: nowrap; font-size: 12px; }
-      .marker span { top: 0; color: var(--muted); }
-      .marker strong { top: 18px; color: var(--amber); }
-      .stats { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-      .stats div, .impact div, .proof-row, .confidence {
-        border: 1px solid rgba(132, 255, 206, 0.1);
-        border-radius: 8px;
+        grid-template-columns: 220px minmax(420px, 1fr) 280px;
+        grid-template-rows: minmax(430px, 1fr) auto;
+        gap: 12px;
         padding: 12px;
-        background: rgba(3, 7, 9, 0.54);
       }
-      .stats span, .impact span, .section-label {
-        display: block;
-        color: var(--muted);
-        font-size: 12px;
-        text-transform: uppercase;
-        font-weight: 850;
+      .market, .chart, .book, .positions {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
       }
-      .stats strong { display: block; margin-top: 6px; font-size: 18px; }
-      .receipt-zone { display: grid; justify-items: center; gap: 12px; padding-bottom: 24px; }
-      .silence { width: min(760px, 100%); color: var(--muted); font-size: 13px; }
-      .receipt { width: min(760px, 100%); overflow: hidden; border-color: rgba(255, 189, 90, 0.34); }
-      .receipt.expanded { border-color: rgba(86, 247, 178, 0.42); }
-      .titlebar { justify-content: space-between; min-height: 44px; padding: 0 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 850; }
-      .banner { gap: 10px; padding: 14px 18px; background: rgba(255, 189, 90, 0.1); color: var(--amber); text-transform: uppercase; font-weight: 900; }
-      .closed { justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
-      .receipt-section { padding: 18px; }
-      .receipt-section h2 { max-width: 620px; margin-top: 8px; font-size: clamp(24px, 3vw, 34px); line-height: 1.04; }
-      .impact { gap: 10px; padding: 0 18px 18px; }
-      .impact div { flex: 1; min-height: 96px; }
-      .impact strong { display: block; margin-top: 7px; line-height: 1.25; }
-      .proof { display: none; border-top: 1px solid var(--line); padding: 18px; background: rgba(86, 247, 178, 0.035); }
+      .market { grid-row: span 2; padding: 10px; display: grid; gap: 7px; align-content: start; }
+      .market button { width: 100%; min-height: 48px; display: flex; justify-content: space-between; padding: 0 10px; font-weight: 850; }
+      .market button.selected { border-color: rgba(86,247,178,.4); color: var(--text); background: rgba(86,247,178,.08); }
+      .green { color: var(--green); } .red { color: var(--red); }
+      .chart { min-height: 430px; position: relative; overflow: hidden; padding: 16px; }
+      .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+      .chart-head p { margin: 0; color: var(--muted); text-transform: uppercase; font-size: 12px; font-weight: 900; }
+      .chart-head h1 { margin: 3px 0 0; font-size: 38px; line-height: 1; }
+      .closed-chip { border: 1px solid rgba(255,189,90,.26); border-radius: 999px; padding: 9px 12px; color: var(--amber); background: rgba(255,189,90,.08); font-size: 13px; font-weight: 850; }
+      .candles { height: 270px; margin-top: 44px; display: grid; grid-template-columns: repeat(16,1fr); align-items: end; gap: 10px; }
+      .candles i { display: block; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, rgba(86,247,178,.9), rgba(86,247,178,.18)); }
+      .candles i.sell { background: linear-gradient(180deg, rgba(255,95,109,.95), rgba(255,95,109,.2)); }
+      .invalid { position: absolute; right: 24%; top: 104px; bottom: 32px; width: 1px; background: var(--amber); }
+      .invalid span, .invalid strong { position: absolute; left: 12px; white-space: nowrap; font-size: 12px; }
+      .invalid span { color: var(--muted); } .invalid strong { top: 18px; color: var(--amber); }
+      .book, .positions { padding: 12px; }
+      .heading { display: flex; justify-content: space-between; align-items: center; min-height: 34px; color: var(--muted); text-transform: uppercase; font-size: 12px; font-weight: 900; }
+      .book-list { display: grid; gap: 4px; margin-top: 10px; }
+      .book-list div { display: flex; justify-content: space-between; min-height: 31px; padding: 0 8px; align-items: center; border-radius: 5px; font-variant-numeric: tabular-nums; }
+      .book-list .sell { color: var(--red); background: rgba(255,95,109,.06); }
+      .book-list .buy { color: var(--green); background: rgba(86,247,178,.06); }
+      .book-list .mark { color: var(--amber); border: 1px solid rgba(255,189,90,.24); background: rgba(255,189,90,.06); }
+      .positions { grid-column: 2 / 4; }
+      .row, .row-head { display: grid; grid-template-columns: 1.2fr .8fr 1fr 1fr 1fr .8fr; gap: 10px; align-items: center; padding: 0 10px; }
+      .row-head { min-height: 28px; color: var(--muted); text-transform: uppercase; font-size: 12px; font-weight: 850; }
+      .row { min-height: 44px; border: 1px solid rgba(255,189,90,.22); border-radius: 8px; background: rgba(255,189,90,.05); }
+      .notification {
+        position: absolute;
+        right: 24px;
+        top: 88px;
+        width: min(520px, calc(100vw - 72px));
+        border: 1px solid rgba(255,189,90,.42);
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(6,10,12,.96);
+        box-shadow: 0 28px 90px rgba(0,0,0,.58);
+      }
+      .notification.expanded { border-color: rgba(86,247,178,.4); }
+      .n-top, .closed, .actions, .confidence { display: flex; align-items: center; }
+      .n-top { justify-content: space-between; gap: 12px; padding: 14px; border-bottom: 1px solid var(--line); }
+      .label { color: var(--amber); text-transform: uppercase; font-size: 12px; font-weight: 900; }
+      .n-top strong { display: block; margin-top: 5px; font-size: 20px; }
+      .n-top button { width: 34px; height: 34px; color: var(--muted); }
+      .closed { justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+      .closed em { color: var(--muted); font-style: normal; }
+      .body { padding: 14px; display: grid; gap: 12px; }
+      .warning { display: flex; gap: 10px; font-size: 20px; line-height: 1.15; font-weight: 850; }
+      .cost { border: 1px solid rgba(255,95,109,.22); border-radius: 8px; background: rgba(255,95,109,.07); padding: 12px; }
+      .cost span, .proof-title, .confidence span { color: var(--muted); text-transform: uppercase; font-size: 12px; font-weight: 900; }
+      .cost strong { display: block; margin-top: 5px; }
+      .proof { display: none; border-top: 1px solid var(--line); padding: 14px; background: rgba(86,247,178,.035); }
       .expanded .proof { display: block; }
-      .proof h3 { margin: 0; color: var(--green); text-transform: uppercase; font-size: 12px; }
-      .proof p { margin-top: 10px; color: #b8c8c2; line-height: 1.5; }
-      .proof-table { display: grid; gap: 7px; margin-top: 14px; }
-      .proof-row { display: grid; grid-template-columns: 92px 1fr 110px 70px; gap: 10px; align-items: center; }
+      .proof-title { color: var(--green); }
+      .proof p { color: #b8c8c2; line-height: 1.45; }
+      .proof-table { display: grid; gap: 7px; }
+      .proof-row { display: grid; grid-template-columns: 78px 1fr 86px 60px; gap: 8px; align-items: center; min-height: 38px; border: 1px solid rgba(132,255,206,.1); border-radius: 7px; padding: 0 10px; background: rgba(3,7,9,.55); }
       .proof-row span, .proof-row em { color: var(--muted); font-style: normal; }
       .proof-row b { color: var(--red); }
-      .confidence { margin-top: 14px; display: flex; justify-content: space-between; }
+      .confidence { justify-content: space-between; border: 1px solid rgba(86,247,178,.2); border-radius: 8px; padding: 10px; margin-top: 12px; }
       .confidence strong { color: var(--green); }
-      .actions { gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding: 14px 18px; }
-      .actions button { min-height: 42px; padding: 0 13px; font-weight: 850; }
+      .actions { gap: 8px; border-top: 1px solid var(--line); padding: 12px 14px; }
+      .actions button { min-height: 40px; padding: 0 12px; font-weight: 850; }
       .primary { color: #03100d; background: var(--green); border-color: var(--green); }
-      .secondary { color: var(--cyan); border-color: rgba(86, 217, 255, 0.24); background: rgba(86, 217, 255, 0.06); }
-      .dismissed { width: min(760px, 100%); padding: 18px; color: var(--muted); display: none; }
-      @media (max-width: 1040px) {
-        .frame, .context { grid-template-columns: 1fr; }
-        aside { border-right: 0; border-bottom: 1px solid var(--line); }
+      .secondary { color: var(--cyan); border-color: rgba(86,217,255,.24); background: rgba(86,217,255,.06); }
+      .silent { position: absolute; right: 24px; top: 88px; display: none; min-height: 42px; padding: 0 14px; border: 1px solid rgba(86,247,178,.22); color: var(--green); background: rgba(6,10,12,.94); }
+      @media (max-width: 1080px) {
+        .layout { grid-template-columns: 1fr; }
+        .market { grid-row: auto; grid-template-columns: repeat(3,minmax(0,1fr)); }
+        .positions { grid-column: auto; }
+        .notification, .silent { position: fixed; }
       }
       @media (max-width: 720px) {
-        .shell, .main { padding: 14px; }
-        header, .closed, .impact { flex-direction: column; align-items: stretch; }
-        .stats, .proof-row { grid-template-columns: 1fr; }
+        .app { margin: 10px; }
+        .topbar, nav, .chart-head { flex-direction: column; align-items: stretch; }
+        .market, .row, .row-head, .proof-row { grid-template-columns: 1fr; }
+        .notification { left: 12px; right: 12px; top: 76px; width: auto; }
       }
     </style>
   </head>
   <body>
-    <main class="shell">
-      <section class="frame">
-        <aside>
-          <div class="logo"><strong>Arlo</strong><span>behavioral layer</span></div>
-          <nav><button class="active">Receipt</button><button>Wallet model</button><button>History</button><button>Silence rules</button></nav>
+    <main class="app">
+      <header class="topbar">
+        <div class="brand"><span>Hyperliquid</span><em>Perps</em></div>
+        <nav><button class="active">Trade</button><button>Vaults</button><button>Portfolio</button><button>History</button></nav>
+        <div class="wallet">0x7a...91F</div>
+      </header>
+      <section class="layout">
+        <aside class="market">
+          <button><span>BTC-PERP</span><strong class="green">+1.8%</strong></button>
+          <button><span>ETH-PERP</span><strong class="green">+1.8%</strong></button>
+          <button class="selected"><span>SOL-PERP</span><strong class="red">-4.2%</strong></button>
+          <button><span>HYPE-PERP</span><strong class="green">+1.8%</strong></button>
+          <button><span>FET-PERP</span><strong class="green">+1.8%</strong></button>
         </aside>
-        <section class="main">
-          <header>
-            <div><p class="eyebrow">Hyperliquid crypto-native release</p><h1>Behavioral Receipt</h1></div>
-            <div class="toggle"><button id="state-a" class="active">State A</button><button id="state-b">State B</button></div>
-          </header>
-          <section class="context">
-            <div class="panel chart">
-              <div class="chart-head"><span>SOL-PERP</span><strong>$182.16</strong><em class="loss">-4.2% closed</em></div>
-              <div class="bars"><i style="height:36%"></i><i style="height:52%"></i><i style="height:43%"></i><i style="height:65%"></i><i style="height:58%"></i><i style="height:82%"></i><i style="height:76%"></i><i style="height:91%"></i><i style="height:70%"></i><i style="height:86%"></i><i style="height:62%"></i><i style="height:73%"></i></div>
-              <div class="marker"><span>Invalidation window</span><strong>+11m drift</strong></div>
-            </div>
-            <div class="panel stats">
-              <div><span>Closed position</span><strong>SOL-PERP</strong></div>
-              <div><span>Side</span><strong>Short</strong></div>
-              <div><span>Position size</span><strong>$8,400</strong></div>
-              <div><span>Exit result</span><strong class="loss">-4.2%</strong></div>
-            </div>
-          </section>
-          <section class="receipt-zone">
-            <div class="silence">Arlo stays silent during the trade. This receipt appears only after a meaningful behavioral deviation.</div>
-            <article id="receipt" class="receipt">
-              <div class="titlebar"><span>ARLO — Behavioral Alert</span><button id="x">×</button></div>
-              <div class="banner">⚠ Behavioral deviation detected</div>
-              <div class="closed"><span>Closed: <strong>SOL-PERP</strong> <em>(Short)</em></span><span>PnL: <strong class="loss">-4.2%</strong></span></div>
-              <section class="receipt-section"><span class="section-label">The deviation</span><h2>You held this position 11 minutes past your normal invalidation exit window.</h2></section>
-              <section class="impact">
-                <div><span>The cost</span><strong>This habit drops your setup expectancy by -23%.</strong></div>
-                <div><span>Baseline exit</span><strong>4m 12s average</strong></div>
-              </section>
-              <section class="proof">
-                <h3>The historical proof</h3>
-                <p>On similar momentum setups over the last 30 days, your average exit time was <strong>4m 12s</strong>. Your execution history records this exact drift here:</p>
-                <div class="proof-table">
-                  <div class="proof-row"><span>May 14</span><strong>SOL-PERP</strong><em>Hold: 14m</em><b>-6.1%</b></div>
-                  <div class="proof-row"><span>May 17</span><strong>ETH-PERP</strong><em>Hold: 12m</em><b>-3.8%</b></div>
-                  <div class="proof-row"><span>May 19</span><strong>HYPE-PERP</strong><em>Hold: 19m</em><b>-8.0%</b></div>
-                </div>
-                <div class="confidence"><span>Confidence Profile</span><strong>High</strong></div>
-              </section>
-              <div class="actions"><button id="toggle-proof" class="primary">View the 3 historical trades that prove this</button><button class="secondary">Open full history log</button></div>
-            </article>
-            <div id="dismissed" class="dismissed">Receipt dismissed. Arlo returns to silence until the next meaningful deviation.</div>
-          </section>
+        <section class="chart">
+          <div class="chart-head"><div><p>SOL-PERP</p><h1>$182.16</h1></div><div class="closed-chip">Short closed 00:00 ago</div></div>
+          <div class="candles"><i style="height:36%"></i><i style="height:52%"></i><i style="height:43%"></i><i style="height:65%"></i><i style="height:58%"></i><i class="sell" style="height:82%"></i><i class="sell" style="height:76%"></i><i class="sell" style="height:91%"></i><i class="sell" style="height:70%"></i><i style="height:86%"></i><i style="height:62%"></i><i style="height:73%"></i><i style="height:57%"></i><i style="height:68%"></i><i style="height:49%"></i><i style="height:61%"></i></div>
+          <div class="invalid"><span>Normal invalidation exit</span><strong>missed by 11m</strong></div>
+        </section>
+        <aside class="book">
+          <div class="heading"><span>Order book</span><em>0.01</em></div>
+          <div class="book-list">
+            <div class="sell"><span>182.41</span><strong>4.21K</strong></div><div class="sell"><span>182.38</span><strong>9.84K</strong></div><div class="sell"><span>182.34</span><strong>2.13K</strong></div><div class="sell"><span>182.29</span><strong>7.65K</strong></div><div class="mark"><span>182.16</span><strong>MARK</strong></div><div class="buy"><span>182.12</span><strong>5.40K</strong></div><div class="buy"><span>182.08</span><strong>8.17K</strong></div><div class="buy"><span>182.02</span><strong>3.92K</strong></div>
+          </div>
+        </aside>
+        <section class="positions">
+          <div class="heading"><span>Positions</span><button id="replay">Replay close</button></div>
+          <div class="row-head"><span>Market</span><span>Side</span><span>Size</span><span>Entry</span><span>Exit</span><span>PnL</span></div>
+          <div class="row"><span>SOL-PERP</span><span>Short</span><span>$8,400</span><span>$174.82</span><span>$182.16</span><strong class="red">-4.2%</strong></div>
         </section>
       </section>
+      <aside id="notification" class="notification">
+        <div class="n-top"><div><span class="label">ARLO Behavioral Alert</span><strong>Behavioral deviation detected</strong></div><button id="close">×</button></div>
+        <div class="closed"><span>Closed: <strong>SOL-PERP</strong> <em>Short</em></span><b class="red">-4.2%</b></div>
+        <div class="body"><div class="warning">⚠ You held this position 11 minutes past your normal invalidation exit window.</div><div class="cost"><span>The cost</span><strong>This habit drops your setup expectancy by -23%.</strong></div></div>
+        <div class="proof">
+          <div class="proof-title">The historical proof</div>
+          <p>On similar momentum setups over the last 30 days, your average exit time was <strong>4m 12s</strong>.</p>
+          <div class="proof-table"><div class="proof-row"><span>May 14</span><strong>SOL-PERP</strong><em>Hold: 14m</em><b>-6.1%</b></div><div class="proof-row"><span>May 17</span><strong>ETH-PERP</strong><em>Hold: 12m</em><b>-3.8%</b></div><div class="proof-row"><span>May 19</span><strong>HYPE-PERP</strong><em>Hold: 19m</em><b>-8.0%</b></div></div>
+          <div class="confidence"><span>Confidence Profile</span><strong>High</strong></div>
+        </div>
+        <div class="actions"><button id="expand" class="primary">View the 3 historical trades</button><button class="secondary">Full log</button></div>
+      </aside>
+      <button id="silent" class="silent">Arlo silent until next deviation</button>
     </main>
     <script>
-      const receipt = document.getElementById("receipt");
-      const stateA = document.getElementById("state-a");
-      const stateB = document.getElementById("state-b");
-      const toggle = document.getElementById("toggle-proof");
-      function setExpanded(expanded) {
-        receipt.classList.toggle("expanded", expanded);
-        stateA.classList.toggle("active", !expanded);
-        stateB.classList.toggle("active", expanded);
-        toggle.textContent = expanded ? "Collapse historical proof" : "View the 3 historical trades that prove this";
-      }
-      stateA.onclick = () => setExpanded(false);
-      stateB.onclick = () => setExpanded(true);
-      toggle.onclick = () => setExpanded(!receipt.classList.contains("expanded"));
-      document.getElementById("x").onclick = () => {
-        receipt.style.display = "none";
-        document.getElementById("dismissed").style.display = "block";
+      const notification = document.getElementById("notification");
+      const silent = document.getElementById("silent");
+      const expand = document.getElementById("expand");
+      document.getElementById("close").onclick = () => {
+        notification.style.display = "none";
+        silent.style.display = "block";
+      };
+      document.getElementById("replay").onclick = silent.onclick = () => {
+        notification.style.display = "block";
+        silent.style.display = "none";
+      };
+      expand.onclick = () => {
+        notification.classList.toggle("expanded");
+        expand.textContent = notification.classList.contains("expanded") ? "Collapse proof" : "View the 3 historical trades";
       };
     </script>
   </body>
